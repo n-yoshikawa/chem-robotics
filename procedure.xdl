@@ -1,0 +1,20 @@
+<Synthesis>
+  <Hardware>
+    <Component id="beaker" type="beaker"/>
+  </Hardware>
+  
+  <Reagents>
+    <Reagent name="red_cabbage_soup"/>
+    <Reagent name="baking_soda_solution"/>
+    <Reagent name="vinegar"/>
+  </Reagents>
+  
+  <Procedure>
+    <Add vessel="beaker" reagent="red_cabbage_soup" amount="50 mL"/>
+    <StartStir vessel="beaker"/> 
+    <Add vessel="beaker" reagent="bakin_soda_solution" amount="20 mL"/>
+    <Add vessel="beaker" reagent="vinegar" amount="10 mL"/>
+    <StopStir vessel="beaker"/>
+  </Procedure>
+</Synthesis>
+
