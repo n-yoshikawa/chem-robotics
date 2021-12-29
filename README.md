@@ -28,3 +28,9 @@ Plan for the problem will be generated in `plan.ipc`.
 (pour beaker vinegar)
 (place vinegar)
 ```
+
+# MoveIt
+Follow the [Python tutorial](https://ros-planning.github.io/moveit_tutorials/doc/move_group_python_interface/move_group_python_interface_tutorial.html)
+
+replace `move_group_python_interface_tutorial.py` in `ws_moveit`.
+
