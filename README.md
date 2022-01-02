@@ -34,3 +34,4 @@ Follow the [Python tutorial](https://ros-planning.github.io/moveit_tutorials/doc
 
 replace `move_group_python_interface_tutorial.py` in `ws_moveit`.
 
+You need to run `https://github.com/AI-Planning/cloud-solver` in your local environment

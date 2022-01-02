@@ -47,6 +47,8 @@ from six.moves import input
 
 import sys
 import copy
+import requests
+import sexpdata
 import rospy
 import moveit_commander
 import moveit_msgs.msg
@@ -590,92 +592,98 @@ def main():
     XDL = """
 <Synthesis>
   <Hardware>
-    <Component id="beaker" type="beaker" x="0.6" y="-0.2" z="0.0"/>
+    <Component id="beaker" type="beaker"/>
   </Hardware>
   
   <Reagents>
-    <Reagent name="liquid" x="0.6" y="0.2" z="0.0"/>
+    <Reagent name="red_cabbage_soup"/>
+    <Reagent name="baking_soda_solution"/>
+    <Reagent name="vinegar"/>
   </Reagents>
   
   <Procedure>
-    <Add vessel="beaker" reagent="liquid"/>
+    <Add vessel="beaker" reagent="red_cabbage_soup" amount="50 mL"/>
   </Procedure>
 </Synthesis>
 """
-    root = ET.fromstring(XDL)
-    for hardware in root.iter('Hardware'):
-        for component in hardware.iter('Component'):
-            beaker = component
-    for reagents in root.iter('Reagents'):
-        for reagent in reagents.iter('Reagent'):
-            liquid = reagent
-    try:
-        print("")
-        print("----------------------------------------------------------")
-        print("Welcome to the MoveIt MoveGroup Python Interface Tutorial")
-        print("----------------------------------------------------------")
-        print("Press Ctrl-D to exit at any time")
-        print("")
-        print("============ Begin the tutorial by setting up the moveit_commander ...")
-        input("start?")
-        tutorial = MoveGroupPythonInterfaceTutorial()
-        #input(
-        #    "============ Press `Enter` to execute a movement using a joint state goal ..."
-        #)
-        #tutorial.go_to_joint_state()
 
-        #input("============ Press `Enter` to execute a movement using a pose goal ...")
-        liquid_pos = (float(liquid.attrib['x']), float(liquid.attrib['y']), float(liquid.attrib['z']))
-        beaker_pos = (float(beaker.attrib['x']), float(beaker.attrib['y']), float(beaker.attrib['z']))
+    tutorial = MoveGroupPythonInterfaceTutorial()
+    liquid_pos = (0.6, 0.2, 0.0)
+    beaker_pos = (0.6, -0.2, 0.0)
+    tutorial.add_box()
+    tutorial.add_my_box(beaker_pos[0], beaker_pos[1], beaker_pos[2])
 
-        tutorial.add_box()
-        tutorial.add_my_box(beaker_pos[0], beaker_pos[1], beaker_pos[2])
+    objects = []
+    def parse_synthesis(root):
+        for hardware in root.iter('Hardware'):
+            parse_hardware(hardware)
+        for reagents in root.iter('Reagents'):
+            parse_reagents(reagents)
+        for procedure in root.iter('Procedure'):
+            parse_procedure(procedure)
+    
+    def parse_hardware(root):
+        for component in root.iter('Component'):
+            objects.append(component.attrib['id'])
+    
+    def parse_reagents(root):
+        for reagent in root.iter('Reagent'):
+            objects.append(reagent.attrib['name'])
+
+    def run_pick():
         tutorial.go_to_pose_goal(liquid_pos[0], liquid_pos[1], liquid_pos[2]+0.2)
         tutorial.attach_box()
-        #input("============ Press `Enter` to execute a movement using a pose goal2 ...")
+    def run_move():
         tutorial.go_to_pose_goal2(beaker_pos[0], beaker_pos[1]+0.1, beaker_pos[2]+0.3)
+    def run_pour():
         tutorial.go_to_pose_pour(beaker_pos[0], beaker_pos[1]-0.05, beaker_pos[2]+0.25)
+    def run_place():
         tutorial.go_to_pose_goal(0.0, 0.0, 0.5)
         tutorial.detach_box()
         tutorial.remove_box()
         tutorial.remove_my_box()
-        #input("============ Press `Enter` to plan and display a Cartesian path ...")
-        #cartesian_plan, fraction = tutorial.plan_cartesian_path()
+    
+    def parse_procedure(root):
+        for step in root:
+            if step.tag == 'Add':
+                vessel = step.attrib['vessel']
+                reagent = step.attrib['reagent']
+                goal = f'(and (hand_available) (added {vessel} {reagent}))'
+                problem = generate_problem('tmp', goal)
+                domain = open('/home/naruki/chem-robotics/domain.pddl', 'r').read()
 
-        #input(
-        #    "============ Press `Enter` to display a saved trajectory (this will replay the Cartesian path)  ..."
-        #)
-        #tutorial.display_trajectory(cartesian_plan)
+                data = {'domain': domain, 'problem': problem}
+                
+                resp = requests.post('http://127.0.0.1:5000/solve',
+                                     verify=False, json=data).json()
 
-        #input("============ Press `Enter` to execute a saved path ...")
-        #tutorial.execute_plan(cartesian_plan)
+                for i, action in enumerate(resp['result']['plan']):
+                    symbols = sexpdata.loads(action['name'])
+                    action = symbols[0].value()
+                    print(action)
+                    if action == 'pick':
+                        run_pick()
+                    if action == 'move':
+                        run_move()
+                    if action == 'pour':
+                        run_pour()
+                    if action == 'place':
+                        run_place()
+    
+    def generate_problem(name, goal):
+        objects_str = ' '.join(objects)
+        return f'''(define (problem {name})
+  (:domain xdl)
+  (:objects {objects_str})
+  (:init (hand_available))
+  (:goal 
+    {goal}
+  )
+)'''
+    root = ET.fromstring(XDL)
+    parse_synthesis(root)
 
-        #input("============ Press `Enter` to add a box to the planning scene ...")
-        #tutorial.add_box()
-
-        #input("============ Press `Enter` to attach a Box to the Panda robot ...")
-        #tutorial.attach_box()
-
-        #input(
-        #    "============ Press `Enter` to plan and execute a path with an attached collision object ..."
-        #)
-        #cartesian_plan, fraction = tutorial.plan_cartesian_path(scale=-1)
-        #tutorial.execute_plan(cartesian_plan)
-
-        #input("============ Press `Enter` to detach the box from the Panda robot ...")
-        #tutorial.detach_box()
-
-        #input(
-        #    "============ Press `Enter` to remove the box from the planning scene ..."
-        #)
-        #tutorial.remove_box()
-
-        print("============ Python tutorial demo complete!")
-    except rospy.ROSInterruptException:
-        return
-    except KeyboardInterrupt:
-        return
-
+    print("============ Python tutorial demo complete!")
 
 if __name__ == "__main__":
     main()
