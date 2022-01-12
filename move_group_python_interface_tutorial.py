@@ -227,7 +227,7 @@ class MoveGroupPythonInterfaceTutorial(object):
         ## We can plan a motion for this group to a desired pose for the
         ## end-effector:
         pose_goal = geometry_msgs.msg.Pose()
-        quaternion = quaternion_from_euler(tau/2.0, 0, 0)
+        quaternion = quaternion_from_euler(-tau / 4, -tau / 8, -tau / 4)
         pose_goal.orientation.x = quaternion[0]
         pose_goal.orientation.y = quaternion[1]
         pose_goal.orientation.z = quaternion[2]
@@ -267,7 +267,7 @@ class MoveGroupPythonInterfaceTutorial(object):
         ## We can plan a motion for this group to a desired pose for the
         ## end-effector:
         pose_goal = geometry_msgs.msg.Pose()
-        quaternion = quaternion_from_euler(tau/2.0, 0, 0)
+        quaternion = quaternion_from_euler(-tau / 4, -tau / 8, -tau / 4)
         pose_goal.orientation.x = quaternion[0]
         pose_goal.orientation.y = quaternion[1]
         pose_goal.orientation.z = quaternion[2]
@@ -318,7 +318,7 @@ class MoveGroupPythonInterfaceTutorial(object):
         move_group = self.move_group
 
         pose_goal = geometry_msgs.msg.Pose()
-        quaternion = quaternion_from_euler(5.0*tau/8.0, 0, 0)
+        quaternion = quaternion_from_euler(-tau / 4, tau / 8, -tau / 4)
         pose_goal.orientation.x = quaternion[0]
         pose_goal.orientation.y = quaternion[1]
         pose_goal.orientation.z = quaternion[2]
@@ -631,14 +631,13 @@ def main():
             objects.append(reagent.attrib['name'])
 
     def run_pick():
-        tutorial.go_to_pose_goal(liquid_pos[0], liquid_pos[1], liquid_pos[2]+0.2)
+        tutorial.go_to_pose_goal(liquid_pos[0], liquid_pos[1], liquid_pos[2]+0.15)
         tutorial.attach_box()
     def run_move():
-        tutorial.go_to_pose_goal2(beaker_pos[0], beaker_pos[1]+0.1, beaker_pos[2]+0.3)
+        tutorial.go_to_pose_goal2(beaker_pos[0], beaker_pos[1]+0.1, beaker_pos[2]+0.15)
     def run_pour():
-        tutorial.go_to_pose_pour(beaker_pos[0], beaker_pos[1]-0.05, beaker_pos[2]+0.25)
+        tutorial.go_to_pose_pour(beaker_pos[0], beaker_pos[1]+0.0, beaker_pos[2]+0.2)
     def run_place():
-        tutorial.go_to_pose_goal(0.0, 0.0, 0.5)
         tutorial.detach_box()
         tutorial.remove_box()
         tutorial.remove_my_box()
