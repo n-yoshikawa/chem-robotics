@@ -219,6 +219,21 @@ class MoveGroupPythonInterfaceTutorial(object):
         # In practice, you should use the class variables directly unless you have a good
         # reason not to.
         move_group = self.move_group
+        joint_goal = move_group.get_current_joint_values()
+        joint_goal[0] = 0
+        joint_goal[1] = -tau / 8
+        joint_goal[2] = 0
+        joint_goal[3] = -tau / 4
+        joint_goal[4] = 0
+        joint_goal[5] = tau / 6  # 1/6 of a turn
+        joint_goal[6] = 0
+
+        # The go command can be called with joint values, poses, or without any
+        # parameters if you have already set the pose or joint target for the group
+        move_group.go(joint_goal, wait=True)
+
+        # Calling ``stop()`` ensures that there is no residual movement
+        move_group.stop()
 
         ## BEGIN_SUB_TUTORIAL plan_to_pose
         ##
@@ -227,11 +242,18 @@ class MoveGroupPythonInterfaceTutorial(object):
         ## We can plan a motion for this group to a desired pose for the
         ## end-effector:
         pose_goal = geometry_msgs.msg.Pose()
-        quaternion = quaternion_from_euler(-tau / 4, -tau / 8, -tau / 4)
-        pose_goal.orientation.x = quaternion[0]
-        pose_goal.orientation.y = quaternion[1]
-        pose_goal.orientation.z = quaternion[2]
-        pose_goal.orientation.w = quaternion[3]
+        #quaternion = quaternion_from_euler(tau / 4, -tau / 8, -tau / 4)
+        import numpy as np
+        v = [0.65286, -0.270351, 0.653763, -0.270698]
+        v /= np.linalg.norm(v)
+        pose_goal.orientation.x = v[0]
+        pose_goal.orientation.y = v[1]
+        pose_goal.orientation.z = v[2]
+        pose_goal.orientation.w = v[3]
+        #pose_goal.orientation.x = quaternion[0]
+        #pose_goal.orientation.y = quaternion[1]
+        #pose_goal.orientation.z = quaternion[2]
+        #pose_goal.orientation.w = quaternion[3]
         pose_goal.position.x = x
         pose_goal.position.y = y
         pose_goal.position.z = z
@@ -254,7 +276,7 @@ class MoveGroupPythonInterfaceTutorial(object):
         current_pose = self.move_group.get_current_pose().pose
         return all_close(pose_goal, current_pose, 0.01)
 
-    def go_to_pose_goal2(self, x, y, z):
+    def go_to_pose_goal_constrained(self, x, y, z):
         # Copy class variables to local variables to make the web tutorials more clear.
         # In practice, you should use the class variables directly unless you have a good
         # reason not to.
@@ -267,11 +289,18 @@ class MoveGroupPythonInterfaceTutorial(object):
         ## We can plan a motion for this group to a desired pose for the
         ## end-effector:
         pose_goal = geometry_msgs.msg.Pose()
-        quaternion = quaternion_from_euler(-tau / 4, -tau / 8, -tau / 4)
-        pose_goal.orientation.x = quaternion[0]
-        pose_goal.orientation.y = quaternion[1]
-        pose_goal.orientation.z = quaternion[2]
-        pose_goal.orientation.w = quaternion[3]
+        #quaternion = quaternion_from_euler(tau / 4, -tau / 8, -tau / 4)
+        #pose_goal.orientation.x = quaternion[0]
+        #pose_goal.orientation.y = quaternion[1]
+        #pose_goal.orientation.z = quaternion[2]
+        #pose_goal.orientation.w = quaternion[3]
+        import numpy as np
+        v = [0.65286, -0.270351, 0.653763, -0.270698]
+        v /= np.linalg.norm(v)
+        pose_goal.orientation.x = v[0]
+        pose_goal.orientation.y = v[1]
+        pose_goal.orientation.z = v[2]
+        pose_goal.orientation.w = v[3]
         pose_goal.position.x = x
         pose_goal.position.y = y
         pose_goal.position.z = z
@@ -589,136 +618,28 @@ class MoveGroupPythonInterfaceTutorial(object):
 
 
 def main():
-    XDL = """
-<Synthesis>
-  <Hardware>
-    <Component id="beaker" type="beaker"/>
-  </Hardware>
-  
-  <Reagents>
-    <Reagent name="red_cabbage_soup"/>
-    <Reagent name="baking_soda_solution"/>
-    <Reagent name="vinegar"/>
-  </Reagents>
-  
-  <Procedure>
-    <Add vessel="beaker" reagent="red_cabbage_soup" amount="50 mL"/>
-  </Procedure>
-</Synthesis>
-"""
-
     tutorial = MoveGroupPythonInterfaceTutorial()
     liquid_pos = (0.6, 0.2, 0.0)
     beaker_pos = (0.6, -0.2, 0.0)
     tutorial.add_box()
     tutorial.add_my_box(beaker_pos[0], beaker_pos[1], beaker_pos[2])
 
-    objects = []
-    def parse_synthesis(root):
-        for hardware in root.iter('Hardware'):
-            parse_hardware(hardware)
-        for reagents in root.iter('Reagents'):
-            parse_reagents(reagents)
-        for procedure in root.iter('Procedure'):
-            parse_procedure(procedure)
-    
-    def parse_hardware(root):
-        for component in root.iter('Component'):
-            objects.append(component.attrib['id'])
-    
-    def parse_reagents(root):
-        for reagent in root.iter('Reagent'):
-            objects.append(reagent.attrib['name'])
-
     def run_pick():
         tutorial.go_to_pose_goal(liquid_pos[0], liquid_pos[1], liquid_pos[2]+0.15)
+        tutorial.go_to_pose_goal_constrained(liquid_pos[0], liquid_pos[1]+0.1, liquid_pos[2]+0.15)
         tutorial.attach_box()
     def run_move():
-        tutorial.go_to_pose_goal2(beaker_pos[0], beaker_pos[1]+0.1, beaker_pos[2]+0.15)
+        tutorial.go_to_pose_goal_constrained(beaker_pos[0], beaker_pos[1]+0.1, beaker_pos[2]+0.15)
     def run_pour():
         tutorial.go_to_pose_pour(beaker_pos[0], beaker_pos[1]+0.0, beaker_pos[2]+0.2)
     def run_place():
         tutorial.detach_box()
         tutorial.remove_box()
         tutorial.remove_my_box()
-    
-    def parse_procedure(root):
-        for step in root:
-            if step.tag == 'Add':
-                vessel = step.attrib['vessel']
-                reagent = step.attrib['reagent']
-                goal = f'(and (hand_available) (added {vessel} {reagent}))'
-                problem = generate_problem('tmp', goal)
-                domain = open('/home/naruki/chem-robotics/domain.pddl', 'r').read()
-
-                data = {'domain': domain, 'problem': problem}
-                
-                resp = requests.post('http://127.0.0.1:5000/solve',
-                                     verify=False, json=data).json()
-
-                for i, action in enumerate(resp['result']['plan']):
-                    symbols = sexpdata.loads(action['name'])
-                    action = symbols[0].value()
-                    print(action)
-                    if action == 'pick':
-                        run_pick()
-                    if action == 'move':
-                        run_move()
-                    if action == 'pour':
-                        run_pour()
-                    if action == 'place':
-                        run_place()
-    
-    def generate_problem(name, goal):
-        objects_str = ' '.join(objects)
-        return f'''(define (problem {name})
-  (:domain xdl)
-  (:objects {objects_str})
-  (:init (hand_available))
-  (:goal 
-    {goal}
-  )
-)'''
-    root = ET.fromstring(XDL)
-    parse_synthesis(root)
-
-    print("============ Python tutorial demo complete!")
+    run_pick()
+    run_move()
+    run_pour()
+    run_place()
 
 if __name__ == "__main__":
     main()
-
-## BEGIN_TUTORIAL
-## .. _moveit_commander:
-##    http://docs.ros.org/noetic/api/moveit_commander/html/namespacemoveit__commander.html
-##
-## .. _MoveGroupCommander:
-##    http://docs.ros.org/noetic/api/moveit_commander/html/classmoveit__commander_1_1move__group_1_1MoveGroupCommander.html
-##
-## .. _RobotCommander:
-##    http://docs.ros.org/noetic/api/moveit_commander/html/classmoveit__commander_1_1robot_1_1RobotCommander.html
-##
-## .. _PlanningSceneInterface:
-##    http://docs.ros.org/noetic/api/moveit_commander/html/classmoveit__commander_1_1planning__scene__interface_1_1PlanningSceneInterface.html
-##
-## .. _DisplayTrajectory:
-##    http://docs.ros.org/noetic/api/moveit_msgs/html/msg/DisplayTrajectory.html
-##
-## .. _RobotTrajectory:
-##    http://docs.ros.org/noetic/api/moveit_msgs/html/msg/RobotTrajectory.html
-##
-## .. _rospy:
-##    http://docs.ros.org/noetic/api/rospy/html/
-## CALL_SUB_TUTORIAL imports
-## CALL_SUB_TUTORIAL setup
-## CALL_SUB_TUTORIAL basic_info
-## CALL_SUB_TUTORIAL plan_to_joint_state
-## CALL_SUB_TUTORIAL plan_to_pose
-## CALL_SUB_TUTORIAL plan_cartesian_path
-## CALL_SUB_TUTORIAL display_trajectory
-## CALL_SUB_TUTORIAL execute_plan
-## CALL_SUB_TUTORIAL add_box
-## CALL_SUB_TUTORIAL wait_for_scene_update
-## CALL_SUB_TUTORIAL attach_object
-## CALL_SUB_TUTORIAL detach_object
-## CALL_SUB_TUTORIAL remove_object
-## END_TUTORIAL
