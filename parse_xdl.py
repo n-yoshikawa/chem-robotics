@@ -74,10 +74,8 @@ if __name__ == '__main__':
 </Synthesis>
 """
     objects, actions = parse_xdl(XDL)
-    print(objects)
-    print(actions)
     action_list = []
     for action in actions:
         action_list.append(action[0].value())
-    print(action_list)
+    print(action_list)  # ['pick', 'move', 'pour', 'place']
 
