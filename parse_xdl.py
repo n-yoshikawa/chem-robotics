@@ -1,5 +1,4 @@
 import requests
-import sexpdata
 import xml.etree.ElementTree as ET 
 
 def parse_synthesis(root, objects, actions):
@@ -43,8 +42,8 @@ def parse_procedure(root, objects, actions):
             resp = requests.post('http://118.27.104.245:5000/solve',
                                  verify=False, json=data).json()
             for i, action in enumerate(resp['result']['plan']):
-                symbols = sexpdata.loads(action['name'])
-                actions.append(symbols)
+                action = action['name'][1:-1].split(' ')
+                actions.append(action)
         else:
             actions.append(['Unimplemented'])
 
@@ -76,6 +75,6 @@ if __name__ == '__main__':
     objects, actions = parse_xdl(XDL)
     action_list = []
     for action in actions:
-        action_list.append(action[0].value())
+        action_list.append(action[0])
     print(action_list)  # ['pick', 'move', 'pour', 'place']
 
